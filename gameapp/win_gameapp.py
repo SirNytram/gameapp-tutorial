@@ -61,7 +61,10 @@ class GameImage():
         scaledposition.y *= gblScale
 
         # img = self.image
-        img  = pygame.transform.rotozoom(self.image, self.rotation, self.scale) 
+        if self.rotation == 0.0 and self.scale == 1.0:
+            img = self.image
+        else:        
+            img  = pygame.transform.rotozoom(self.image, self.rotation, self.scale) 
         # self.image = img
         self.updateRect(img)
         pygame.display.get_surface().blit(img, (scaledposition.x-(img.get_size()[0]*self.anchor_point[0]), scaledposition.y-(img.get_size()[1]*self.anchor_point[1])))
@@ -227,6 +230,9 @@ class GameAudio():
 
     def set_volume(self, volume = 1):
         self.mySound.set_volume(volume)
+        
+    def get_length(self):
+        self.mySound.get_length()
 
 class VirtualKey():
     def __init__(self, parent, label, key, colrow):
