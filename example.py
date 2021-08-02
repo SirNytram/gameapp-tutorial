@@ -29,7 +29,7 @@ class Flappy():
             self.pos.x += 5
 
     def animate(self):
-        if kb.K_w in self.gameapp.pressedKeys or kb.K_a in self.gameapp.pressedKeys or kb.K_s in self.gameapp.pressedKeys or kb.K_d in self.gameapp.pressedKeys:
+        # if kb.K_w in self.gameapp.pressedKeys or kb.K_a in self.gameapp.pressedKeys or kb.K_s in self.gameapp.pressedKeys or kb.K_d in self.gameapp.pressedKeys:
                 self.curimg += 1        
 
 
@@ -48,6 +48,7 @@ class MySection(GameSection):
         self.iscolliding1 = False
         self.iscolliding2 = False
         self.flappy = Flappy(self.gameapp)
+
 
 
     def on_timer(self, name):
@@ -90,7 +91,7 @@ class MySection(GameSection):
             self.img.moveTo(1, (300,300))
 
 
-        if self.img.rect.collideRect(self.img2.rect):
+        if self.img.rect.collidesRect(self.img2.rect):
             if not self.iscolliding1:
                 self.crash_sound.play()
             self.iscolliding1 = True

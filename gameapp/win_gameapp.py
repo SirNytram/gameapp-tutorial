@@ -110,7 +110,16 @@ class GameImage():
     def setPixel(self, point = (0,0), color = (0,0,0)):
         self.image.set_at((point[0], point[1]), color)
 
+    def collidesGI(self, gameImage)->bool:
+        return self.rect.collidesRect(gameImage.rect)
     
+    def collidesGIList(self, list)->int:
+        rects:List[Rect] = []
+        for gi in list:
+            rects.append(gi.rect)
+
+        return self.rect.collidesRectList(rects)
+
 
 
 class GameShapeRect(GameImage):

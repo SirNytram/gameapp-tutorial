@@ -258,7 +258,7 @@ class Rect():
 
     #######
 
-    def collideRect(self, rect)->bool:
+    def collidesRect(self, rect)->bool:
         ret = False
 
         if self.left < rect.right and \
@@ -266,6 +266,14 @@ class Rect():
             self.top < rect.bottom and \
             self.bottom > rect.top :
                 ret = True
+        return ret
+
+
+    def collidesRectList(self, list)->int:
+        ret = -1
+        for i, rect in enumerate(list):
+            if self.collidesRect(rect):
+                return i
 
         return ret
 
@@ -280,20 +288,15 @@ class Rect():
 
         return ret
         
+    def containRectList(self, list):
+        ret = -1
+        for i, rect in enumerate(list):
+            if self.containsRect(rect):
+                return i
 
-    # def collideRectList(self, list)->int:
-    #     ret = -1
-    #     for i, rect in enumerate(list):
-    #         rect: Rect
-    #         if rect.collideRect(rect):
-    #             return i
+        return ret
 
-    #     return ret
-
-    # def containRect(self, items):
-    #     pass
-
-    def collidePoint(self, point: Point):
+    def collidesPoint(self, point: Point):
         ret = False
 
         if self.left < point.x and \
@@ -304,4 +307,11 @@ class Rect():
 
         return ret
 
+    def collidesPointList(self, list):
+        ret = -1
+        for i, point in enumerate(list):
+            if self.collidesPoint(point):
+                return i
+
+        return ret
 
