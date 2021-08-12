@@ -3,7 +3,7 @@ import os
 # load pythonsta libraries
 if os.name == 'posix': 
 
-    import ios_constants as kb
+    import kb
     from .ios_gameapp import GameApp, GameText, GameFont, GameImage, GameAudio, GameSection
     from .rect import Rect, Point
     
@@ -11,6 +11,5 @@ if os.name == 'posix':
 elif os.name == 'nt':
     import pygame
     import pygame.constants as kb
-    from gameapp.rect import Rect, Point
-    #from pygame import Rect 
-    from gameapp.win_gameapp import GameApp, GameText, GameFont, GameImage, GameAudio, GameSection
+    from gameapp.rect import Rect, Point, Color
+    from gameapp.win_gameapp import GameApp, GameSection, GameImage, GameText, GameFont, GameAudio, GameTimer, GameShapeRect, GameShapeCircle, GameShapeLine

@@ -5,10 +5,31 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "example project",
+            "name": "Python: Current File",
             "type": "python",
             "request": "launch",
-            "program": "example.py",
+            "program": "${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "cube ball",
+            "type": "python",
+            "request": "launch",
+            "program": "cubeball.py",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "car battle",
+            "type": "python",
+            "request": "launch",
+            "program": "carbattle.py",
+            "console": "integratedTerminal"
+        },        
+        {
+            "name": "flappy",
+            "type": "python",
+            "request": "launch",
+            "program": "flappy.py",
             "console": "integratedTerminal"
         }
     ]

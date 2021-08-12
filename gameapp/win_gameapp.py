@@ -1,58 +1,102 @@
 
+
 import pygame
-from pygame import color
 import pygame.constants as kb
-from gameapp import Rect, Point
-from typing import List, Dict, Tuple, Optional
+from pygame.surface import Surface
+from gameapp import Rect, Point, Color
+from typing import List, Dict, Tuple
 import time
 import math
 
-
 gblScale = 1.0
 
-
-
 class GameImage():
-    def __init__(self, parent = None, fileName = '', *, position = (0,0), anchor_point = (0,0), rotation = 0.0, scale = 1.0):
-        self.parent = parent
-        self.image= pygame.Surface((0,0))
-        self.fileName = fileName
-        self.position = Point(position[0], position[1])
-        self.anchor_point = anchor_point
+    def __init__(self, source = None, position = (0,0), *, anchor_point = (0.5,0.5), rotation:float = 0.0, scale:float = 1.0, show_rect=False):
+        self._image = pygame.Surface((0,0))
+        self.anchor_point = Point(anchor_point[0],anchor_point[1])
         self.rotation = rotation
         self.scale = scale
-        self.rect = Rect(position[0], position[1], 0, 0)
+        self._position = Point(position[0], position[1])
+        self._position._changed = True
+        self._rect = Rect(0, 0, 1, 1)
+        self.show_rect = show_rect
+
+        self.load(source)  
+
+    ###################### 
+    
+    @property
+    def rect(self)->Rect:
+        if self._position._changed:
+            self._rect._left = self._position._left - (self._rect._width * self.anchor_point[0])
+            self._rect._top = self._position._top - (self._rect._height * self.anchor_point[1])
+            self._position._changed = False
+
+        return self._rect
+
+    @rect.setter
+    def rect(self, value:Rect):
+        self._rect = Rect(value._left, value._top, value._width, value._height)
+        self._position._left = self._rect._left + (self._rect._width * self.anchor_point.left)
+        self._position._top = self._rect._top + (self._rect._height * self.anchor_point.top)
+        self._position._changed = False
+
+    @property
+    def position(self)->Point:
+        if self._rect._changed:
+            self._position._left = self._rect._left + (self._rect._width * self.anchor_point.left)
+            self._position._top = self._rect._top + (self._rect._height * self.anchor_point.top)
+            self._rect._changed = False
+
+        return self._position
+
+    @position.setter
+    def position(self, value:Point):
+        self._position = Point(value._left, value._top)
+        self._rect._left = self._position._left - (self._rect._width * self.anchor_point[0])
+        self._rect._top = self._position._top - (self._rect._height * self.anchor_point[1])
+        self._rect._changed = False
+
+    ###################### 
 
 
-        if self.fileName and self.fileName != '':
-            self.load(self.fileName)
+    def load(self, source):
+        if source:
+            if type(source) == str:
+                self._image = pygame.image.load(source).convert_alpha()
+            elif type(source) == Surface:
+                self._image = source
+            elif type(source) == GameImage:
+                self._image = source._image
+
+            size = self._image.get_size()
+            global gblScale
+            newsize = (int(size[0] * gblScale), int(size[1] * gblScale))
+            self._image = pygame.transform.scale(self._image, newsize)
+            self.updateRect(self._image)
+
 
     def updateRect(self, img):
-        if img == None:
-            img = self.image
-
         size = img.get_size()
+        self._rect._left = self._position._left-(size[0]*self.anchor_point[0])
+        self._rect._top = self._position._top-(size[1]*self.anchor_point[1])
+        self._rect._width = size[0]
+        self._rect._height = size[1]
 
-        self.rect.x = self.position.x-(size[0]*self.anchor_point[0])
-        self.rect.y =self.position.y-(size[1]*self.anchor_point[1])
-        self.rect.width = size[0]
-        self.rect.height = size[1]
 
-    def load(self, fileName):
-        self.image = pygame.image.load(fileName)#.convert()
-        # pygame.image.set_alpha(128)
-        size = self.image.get_size()
-        global gblScale
-        newsize = (int(size[0] * gblScale), int(size[1] * gblScale))
-        self.image = pygame.transform.scale(self.image, newsize)
-        self.updateRect(self.image)
 
     def render(self, position = None):
         if position:
-            # if type(position) == Position:
-            #     self.position =  copy.copy(position)
-            # else:
-                self.position = Point(position[0], position[1])
+            self.position = Point(position[0], position[1])
+
+        # img = self.image
+        if self.rotation == 0.0 and self.scale == 1.0:
+            img = self._image
+        else:        
+            img  = pygame.transform.rotozoom(self._image, self.rotation, self.scale) 
+            # self._position._left *= self.scale
+            # self._position._top *= self.scale
+            self.updateRect(img)
 
 
         global gblScale
@@ -60,40 +104,48 @@ class GameImage():
         scaledposition.x *= gblScale        
         scaledposition.y *= gblScale
 
-        # img = self.image
-        if self.rotation == 0.0 and self.scale == 1.0:
-            img = self.image
-        else:        
-            img  = pygame.transform.rotozoom(self.image, self.rotation, self.scale) 
-        # self.image = img
-        self.updateRect(img)
         pygame.display.get_surface().blit(img, (scaledposition.x-(img.get_size()[0]*self.anchor_point[0]), scaledposition.y-(img.get_size()[1]*self.anchor_point[1])))
+        if self.show_rect:
+            pygame.draw.rect(pygame.display.get_surface(), (0,255,0), pygame.Rect(self.rect.left, self.rect.top, self.rect.width, self.rect.height), 1)
 
-    def rotoZoom(self, angle=0, scale=0):
-        self.image = pygame.transform.rotozoom(self.image, angle, scale)
-        # self.updateRect()
+    def rotate(self, angle=0):
+        self._image = pygame.transform.rotate(self._image, angle)
+        self.updateRect(self._image)
+        return self
+
+    def resize(self, width, height):
+        self._image = pygame.transform.scale(self._image, (width, height))
+        self.updateRect(self._image)
+        return self
+
+    def rotoZoom(self, angle=0, scale=1.0):
+        self._image = pygame.transform.rotozoom(self._image, angle, scale)
+        self.updateRect(self._image)
+        return self
 
     def moveAngle(self, dist, angle):
         ang = math.radians(angle)
         dx = dist * math.cos(ang)
         dy = dist * math.sin(ang)
-
         self.position.x += dx
         self.position.y -= dy
-        # self.updateRect()
+        self.updateRect(self._image)
+        return self
 
     def moveTo(self, dist, position):
         dx = (position[0] - self.position.x)
         dy = -(position[1] - self.position.y)
         
-        ang = math.degrees(math.atan(dy/dx))
+        ang = 0
+        if dx > 0:
+            ang = math.degrees(math.atan(dy/dx))
 
         if dx < 0:
             ang += 180
 
         self.moveAngle(dist, ang)
 
-    def rotateAround(self, angle, point):
+    def rotateAround(self, angle:float, point):
         ang = math.radians(angle)
         c = math.cos(ang)
         s = math.sin(ang)
@@ -106,127 +158,145 @@ class GameImage():
 
         self.position.x = xnew + point[0]
         self.position.y = ynew + point[1]
+        return self
 
-    def setPixel(self, point = (0,0), color = (0,0,0)):
-        self.image.set_at((point[0], point[1]), color)
+    def setPixel(self, point = Point(), color = (0,0,0)):
+        if type(color) != Color:
+            color = Color(color[0], color[1], color[2])
+        self._image.set_at((point[0], point[1]), pygame.Color(color.r, color.g, color.b))
 
-    def collidesGI(self, gameImage)->bool:
-        return self.rect.collidesRect(gameImage.rect)
-    
-    def collidesGIList(self, list)->int:
-        rects:List[Rect] = []
-        for gi in list:
-            rects.append(gi.rect)
-
-        return self.rect.collidesRectList(rects)
-
+    def copy(self):
+        gi = GameImage(position = self.position, anchor_point=self.anchor_point, rotation=self.rotation, scale=self.scale, show_rect=self.show_rect)
+        gi._image = self._image.copy()
+        gi.updateRect(self._image)
+        return gi
 
 
 class GameShapeRect(GameImage):
-    def __init__(self, parent = None, rect: Rect = Rect(0,0,0,0), color = (0,0,0), line_width = 1, corner_radius = 0):
-        super().__init__(parent)
+    def __init__(self, rect = (0,0,0,0), color = (0,0,0), line_width:int = 1, corner_radius:int = 0):
+        '''Rectangle Shape'''
+        super().__init__()
+        if type(color) != Color:
+            color = Color(color[0], color[1], color[2])
         self.color = color
+
+        if type(rect) in (tuple, list):
+            rect = Rect(rect[0], rect[1], rect[2], rect[3])
+
+        self.rect = rect
+        self._image = pygame.Surface((self.rect.width, self.rect.height))
+
         self.line_width = line_width
         self.corder_radius = corner_radius
-        self.image = pygame.Surface((rect.width, rect.height))
-        self.position.left = rect.left
-        self.position.top = rect.top
-        self.updateRect(self.image)
 
     def render(self):
-        pygame.draw.rect(pygame.display.get_surface(), self.color, pygame.Rect(self.rect.left, self.rect.top, self.rect.width, self.rect.height), self.line_width, self.corder_radius)
+        if self.rect.size != self._image.get_size():
+            self._image = pygame.Surface((self.rect.width, self.rect.height))
+            self.updateRect(self._image)
 
-    def setRect(self, rect: Rect):
-        self.position.left = rect.left
-        self.position.top = rect.top
-        self.image = pygame.Surface((rect.width, rect.height))
-        self.updateRect(self.image)
-
+        pygame.draw.rect(pygame.display.get_surface(), self.color.rgb, pygame.Rect(self.rect.left, self.rect.top, self.rect.width, self.rect.height), self.line_width, self.corder_radius)
+        
 class GameShapeCircle(GameImage):
-    def __init__(self, parent = None, center = (0,0), radius = 0, color = (0,0,0), line_width = 1):
-        super().__init__(parent)
-        self.color = color
+    def __init__(self, center = (0,0), radius = 0, color = (0,0,0), line_width:int = 1):
+        super().__init__(position=center)
         self.radius = radius
         self.line_width = line_width
-        self.image = pygame.Surface((self.radius * 2, self.radius * 2))
-        self.position.left = center[0]
-        self.position.top = center[1]
-        self.updateRect(self.image)
+
+        self.color = Color(color[0], color[1], color[2])
+
+        self._image = pygame.Surface((self.radius * 2, self.radius * 2))
+        self.updateRect(self._image)
+
 
     def render(self):
-        pygame.draw.circle(pygame.display.get_surface(), self.color, (self.position[0], self.position[1]), self.radius, self.line_width)
+        if self.rect.size != (self.radius * 2, self.radius * 2):
+            self._image = pygame.Surface((self.radius * 2, self.radius * 2))
+            self.updateRect(self._image)
 
-    def setRect(self, rect: Rect):
-        self.position.left = rect.left
-        self.position.top = rect.top
-        self.image = pygame.Surface((rect.width, rect.height))
-        self.updateRect(self.image)
+        pygame.draw.circle(pygame.display.get_surface(), pygame.Color(self.color.r, self.color.g, self.color.b), (self.position[0], self.position[1]), self.radius, self.line_width)
+
+class GameShapeLine(GameImage):
+    def __init__(self, first_point = (0,0), last_point = (0,0), color = (0,0,0), line_width:int = 1):
+        super().__init__()
+        self.first_point = Point(first_point[0], first_point[1])
+        self.last_point = Point(last_point[0], last_point[1])
+        self.line_width = line_width
+
+        if type(color) != Color:
+            color = Color(color[0], color[1], color[2])
+        self.color = color
+
+        self._image = pygame.Surface((self.last_point.x - self.first_point.x, self.last_point.x - self.first_point.x))
+        self.updateRect(self._image)
 
 
+    def render(self):
+        if self.rect.size != (self.last_point.x - self.first_point.x, self.last_point.x - self.first_point.x):
+            self._image = pygame.Surface((self.last_point.x - self.first_point.x, self.last_point.x - self.first_point.x))
+            self.updateRect(self._image)
+        pygame.draw.line(pygame.display.get_surface(), pygame.Color(self.color.r, self.color.g, self.color.b), self.first_point.point, self.last_point.point, self.line_width)
+
+# class GameShapeTriangle(GameImage):
+    # pass
 
 
 class GameFont():
-    def __init__(self, parent = None, name = 'Verdana', size = 20, isSys = True):
-        self.parent = parent
+    def __init__(self, name = 'Verdana', size = 20, is_sys = True):
         self.name = name
         self.size = size
         self.font = None
-        self.isSys = isSys
+        self.is_sys = is_sys
 
+
+    def load(self):
         global gblScale
-
         if not self.font:
-            if self.isSys:
+            if self.is_sys:
                 self.font = pygame.font.SysFont(self.name, int(self.size * gblScale))
             else:
                 self.font = pygame.font.Font(self.name, int(self.size * gblScale))
 
-
 class GameText(GameImage):
-    def __init__(self, parent = None, font = None, text = '', position = (0,0), RGB = (0,0,0)):
-        super().__init__(parent, fileName=None, position=position)
+    def __init__(self, text = '', position = (0,0), color = (0,0,0), font = GameFont(), anchor_point = (0.5, 0.5)):
+        super().__init__(position=position, anchor_point=anchor_point)
+        if type(color) != Color:
+            color = Color(color[0], color[1], color[2])
+        self.color = color
         self.font = font
         self.text = text
-        self.color = pygame.Color(RGB[0],RGB[1],RGB[2])
+
+    @property
+    def text(self)->str:
+        return self._text
+
+    @text.setter
+    def text(self, value:str):
+        self._text = value
+        self.font.load()
+        self._image = self.font.font.render(self._text, True, pygame.Color(self.color.r,self.color.g, self.color.b))
+        self.updateRect(self._image)
 
     def renderText(self, text, position = None):
         self.text = str(text)
         self.render(position)
 
-    def render(self, position = None):
-        if position:
-            # if type(position) == Rect:
-            #     self.position = position.copy()
-            # else:
-                self.position = Point(position[0], position[1])
-
-
-        if self.text != '' and self.font:
-            self.image = self.font.font.render(self.text, True, self.color)
-
-            global gblScale
-            scaledposition = Point(self.position.x, self.position.y)
-            scaledposition.x *= gblScale
-            scaledposition.y *= gblScale
-
-            pygame.display.get_surface().blit(self.image, (scaledposition.x, scaledposition.y))
 
 class GameAudio():
-    def __init__(self, fileName = None, volume = 1):
+    def __init__(self, file_name = None, volume = 1):
         self.mySound:pygame.mixer.Sound = None 
         # self.played = False
-        if fileName:
-            self.load(fileName)
-            self.set_volume(volume)
+        if file_name:
+            self.load(file_name)
+            self.setVolume(volume)
     
-    def load(self, fileName):
+    def load(self, file_name):
         if self.mySound:
             self.mySound.stop()
             
-        if '.' not in fileName:
-            fileName += '.ogg'
+        if '.' not in file_name:
+            file_name += '.ogg'
 
-        self.mySound = pygame.mixer.Sound(fileName)
+        self.mySound = pygame.mixer.Sound(file_name)
 
     def play(self, numRepeat = 0):
         # if not self.played:
@@ -237,12 +307,9 @@ class GameAudio():
         self.mySound.stop()
         # self.played = False
 
-    def set_volume(self, volume = 1):
+    def setVolume(self, volume = 1):
         self.mySound.set_volume(volume)
         
-    def get_length(self):
-        self.mySound.get_length()
-
 class VirtualKey():
     def __init__(self, parent, label, key, colrow):
         self.parent = parent
@@ -265,36 +332,11 @@ class VirtualKey():
         pygame.draw.circle(surf, (255,255,255), (self.position[0], self.position[1]), self.diameter)
         self.text.render()
         
-class GameSection:
-    def on_start(self):
-        pass
-
-    def on_event(self, eventId):
-        pass
-    
-    def on_loop(self):
-        pass
-
-    def on_render(self):
-        pass
-
-    def on_after_render(self):
-        pass
-
-    def on_key(self, isDown, key, mod):
-        pass
-
-    def on_mouse(self, isDown, key, xcoord, ycoord):
-        pass
-
-    def on_timer(self, name):
-        pass
 
 
 class GameTimer():
-    def __init__(self, parent, name:str, id:int, milliseconds:float, numRepeats:int, delayMS:float=0.0):
+    def __init__(self, name:str, id:int, milliseconds:float, numRepeats:int, delayMS:float=0.0):
         self.active: bool = True
-        self.parent = parent
         self.name:str = name
         self.id:int = id
         self.milliseconds:float = milliseconds
@@ -306,34 +348,58 @@ class GameTimer():
     def getNextRunMS(self):
         return self.msAtStart + self.delayMS + ((self.numLoopsPerformed + 1) * self.milliseconds)
 
+class GameSection:
+    def __init__(self, gameapp, active:bool = False):
+        self.gameapp:GameApp = gameapp
+        self.active = active
+        self.started_once = False
+
+    def on_start(self):
+        pass
+
+    def on_event(self, event_id):
+        pass
+    
+    def on_loop(self):
+        pass
+
+    def on_render(self):
+        pass
+
+    def on_after_render(self):
+        pass
+
+    def on_key(self, is_down, key, mod):
+        pass
+
+    def on_mouse(self, is_down, key, position = Point()):
+        pass
+
+    def on_timer(self, timer: GameTimer):
+        pass
         
 
 class GameApp:
-    def __init__(self, *, width=640, height=480, displayNumber = 0, scale = 1.0, hasVK = False, fps = 60):
+    def __init__(self, *, width=640, height=480, display_number = 0, full_screen = False, scale = 1.0, hasVK = False, fps = 60):
         self.hasVK = hasVK
         self.platform = 'win'
         self.isRunning = True
-        self.surface = None
-        self.width = width
-        self.height = height
-        self.isFullScreen = False
-        self.fps = fps
+        self._surface = None
+        self.rect = Rect(0,0, width, height)
+        self._fps = fps
         # self.keysPressed = []
         self.pressedKeys = []
         self.curUserEventId = kb.USEREVENT 
 
-
         self._milliseconds_since_start =  time.time() * 1000
         self._milliseconds_since_last_frame = 0.0
 
-        self.currentSectionName:str = ''
+        # self.active_section:GameSection = GameSection(self)
         self.sections: Dict[str, GameSection] = {}
         self.virtualKeys: List[VirtualKey] = []
         # self.timersById: Dict[int, GameTimer] = {}
         self.timers: Dict[str, GameTimer] = {}
         # self.timers: List[GameTimer] = []
-
-
 
         pygame.init()
         pygame.mixer.init()
@@ -346,8 +412,8 @@ class GameApp:
 
         global gblScale
         gblScale = scale
-        self.surface = pygame.display.set_mode((int(self.width * gblScale), int(self.height * gblScale + vkspace)), display=displayNumber)
-        if self.isFullScreen == True:
+        self._surface = pygame.display.set_mode((int(self.rect.width * gblScale), int(self.rect.height * gblScale + vkspace)), display=display_number)
+        if full_screen == True:
             pygame.display.toggle_fullscreen()
       
     def getMS(self):
@@ -357,45 +423,78 @@ class GameApp:
         return self._milliseconds_since_last_frame 
 
     def on_start(self):
-        pass
+        for section in self.sections.values():
+            if section.active and not section.started_once:
+                section.on_start()
+                section.started_once = True
 
-    def on_event(self, eventId):
-        pass
+    def on_event(self, event_id):
+        for section in self.sections.values():
+            if section.active:
+                if not section.started_once:
+                    section.on_start()
+                    section.started_once = True
+                    
+                section.on_event(event_id)
     
     def on_loop(self):
-        if self.currentSectionName != '':
-            self.sections[self.currentSectionName].on_loop()
+        for section in self.sections.values():
+            if section.active:
+                if not section.started_once:
+                    section.on_start()
+                    section.started_once = True
+                    
+                section.on_loop()
 
     def on_render(self):
-        if self.currentSectionName != '':
-            self.sections[self.currentSectionName].on_render()
+        for section in self.sections.values():
+            if section.active:
+                if not section.started_once:
+                    section.on_start()
+                    section.started_once = True
+                    
+                section.on_render()
 
     def on_after_render(self):
-        if self.currentSectionName != '':
-            self.sections[self.currentSectionName].on_after_render()
+        for section in self.sections.values():
+            if section.active:
+                if not section.started_once:
+                    section.on_start()
+                    section.started_once = True
+                    
+                section.on_after_render()
 
-    def on_key(self, isDown, key, mod):
-        if self.currentSectionName != '':
-            self.sections[self.currentSectionName].on_key(isDown, key, mod)
+    def on_key(self, is_down, key, mod):
+        for section in self.sections.values():
+            if section.active:
+                if not section.started_once:
+                    section.on_start()
+                    section.started_once = True
+                    
+                section.on_key(is_down, key, mod)
 
+    def on_mouse(self, is_down, key, position = Point()):
+        for section in self.sections.values():
+            if section.active:
+                if not section.started_once:
+                    section.on_start()
+                    section.started_once = True
+                    
+                section.on_mouse(is_down, key, position)
 
-    def on_mouse(self, isDown, key, xcoord, ycoord):
-        if self.currentSectionName != '':
-            self.sections[self.currentSectionName].on_mouse(isDown, key, xcoord, ycoord)
+    def on_timer(self, timer:GameTimer):
+        for section in self.sections.values():
+            if section.active:
+                if not section.started_once:
+                    section.on_start()
+                    section.started_once = True
+                    
+                section.on_timer(timer)
 
-    def on_timer(self, name):
-        if self.currentSectionName != '':
-            self.sections[self.currentSectionName].on_timer(name)
-
-
-
-    def cleanup(self):
-        pygame.quit()
- 
     def addTimer(self, name, milliseconds:float, numRepeats:int=-1, delayMS=0.0):
         if name not in self.timers:
             self.curUserEventId += 1
-            timer = GameTimer(self, name, self.curUserEventId, milliseconds, numRepeats, delayMS)
+            timer = GameTimer(name, self.curUserEventId, milliseconds, numRepeats, delayMS)
             timer.msAtStart = self.getMS()
             self.timers[name]  = timer
         else:
@@ -424,8 +523,6 @@ class GameApp:
             self.virtualKeys.append(VirtualKey(self, 'OK', kb.K_RETURN, (9,2)))
 
 
-        self.on_start()
-
         while( self.isRunning ):
 
             curTime = time.time() * 1000
@@ -437,12 +534,13 @@ class GameApp:
 
 
             # self.keysPressed = pygame.key.get_pressed()
+            self.on_start()
 
             for event in pygame.event.get():
+                self.on_event(event.type)
+
                 if event.type == pygame.QUIT:
                     self.isRunning = False
-
-                self.on_event(event.type)
 
                 pos = pygame.mouse.get_pos()
                 if event.type == kb.KEYDOWN:
@@ -465,13 +563,13 @@ class GameApp:
 
                 global gblScale
                 if event.type in (kb.MOUSEBUTTONDOWN, kb.MOUSEBUTTONUP):
-                    self.on_mouse(event.type == kb.MOUSEBUTTONDOWN, event.button, pos[0] / gblScale, pos[1] / gblScale)
+                    self.on_mouse(event.type == kb.MOUSEBUTTONDOWN, event.button, Point(pos[0] / gblScale, pos[1] / gblScale))
 
 
             for timer in self.timers.values():
                 if timer.active and self._milliseconds_since_start > timer.getNextRunMS():
                     timer.numLoopsPerformed += 1
-                    self.on_timer(timer.name)
+                    self.on_timer(timer)
                     #check if last loop
                     #if not infinite timer
                     if timer.numRepeats >= 0 and timer.numLoopsPerformed > timer.numRepeats:
@@ -490,16 +588,11 @@ class GameApp:
 
             self.on_after_render()
 
-            self.clock.tick(self.fps)
+            self.clock.tick(self._fps)
  
     def quit(self):
         self.isRunning = False
 
-    def fill(self, color= (0,0,0)):
-        pygame.display.get_surface().fill(color)
-
-    def drawRect(self, rect: Rect, color=(0,0,0), width=0, border_radius=0):
-        pygame.draw.rect(pygame.display.get_surface(), color, pygame.Rect(rect.left, rect.top, rect.width, rect.height), width, border_radius)
 
 if __name__ == "__main__" :
     
