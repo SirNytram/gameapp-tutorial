@@ -23,9 +23,9 @@ class MainSection(GameSection):
         self.ball.position.y += 5
 
         #check if basket is moving
-        if kb.K_RIGHT in self.gameapp.pressedKeys:
+        if kb.K_RIGHT in self.gameapp.pressed_keys:
             self.basket.position.x += 2
-        if kb.K_LEFT in self.gameapp.pressedKeys:
+        if kb.K_LEFT in self.gameapp.pressed_keys:
             self.basket.position.x -= 2
 
         #check if basket collides with ball
@@ -43,7 +43,7 @@ class MainSection(GameSection):
         self.bg.render()
         self.ball.render()
         self.basket.render()
-        self.score_text.renderText(f'Score: {self.score}')
+        self.score_text.render_text(f'Score: {self.score}')
         self.border.render()
         self.floor.render()
 

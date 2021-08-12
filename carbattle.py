@@ -8,10 +8,9 @@ class CarLevel(GameSection):
         self.bg = GameShapeRect(self.gameapp.rect, color=Color('black'), line_width=0)
         # self.car_boundaries = GameShapeRect(color=Color('green'))
         self.crash_boundaries = GameShapeCircle(radius=20, color=Color('green'))
-        self.player_car = GameImage('car_red.png', (200,200), scale=0.5, show_rect=True)
-        self.enemy_car = GameImage('car_red.png', (400,200), scale=0.5)
-        self.player_car.rotate(90)
-        self.enemy_car.rotate(90)
+        self.player_car = GameImage('tank_green.png', (20,20), scale=0.5).rotate(-90)
+        self.player_car.rotation = -45
+        self.enemy_car = GameImage('tank_purple.png', (400,200), scale=0.5).rotate(-90)
         self.crash_sound = GameAudio('crash.wav')
         self.bg_music = GameAudio('background.wav')
         # self.bg_music.play(-1)
@@ -20,26 +19,26 @@ class CarLevel(GameSection):
                         radius=4, 
                         color=Color('yellow'), 
                         line_width=0)
-        self.gameapp.addTimer('flappy', 100)
+
         self.iscolliding = False
         self.auto_follow = False
         self.player_bullets:List[GameShapeCircle] = []
 
 
     def on_loop(self):
-        if kb.K_UP in self.gameapp.pressedKeys:
+        if kb.K_UP in self.gameapp.pressed_keys:
             if not self.iscolliding:
-                self.player_car.moveAngle(10, self.player_car.rotation)
+                self.player_car.move_angle(5, self.player_car.rotation)
 
-        if kb.K_DOWN in self.gameapp.pressedKeys:
-            self.player_car.moveAngle(-10, self.player_car.rotation)
+        if kb.K_DOWN in self.gameapp.pressed_keys:
+            self.player_car.move_angle(-2, self.player_car.rotation)
 
 
-        if kb.K_RIGHT in self.gameapp.pressedKeys:
-            self.player_car.rotation -= 5
+        if kb.K_RIGHT in self.gameapp.pressed_keys:
+            self.player_car.rotation -= 2
 
-        if kb.K_LEFT in self.gameapp.pressedKeys:
-            self.player_car.rotation += 5
+        if kb.K_LEFT in self.gameapp.pressed_keys:
+            self.player_car.rotation += 2
 
 
         if self.player_car.position.distanceTo(self.enemy_car.position) < 40:
@@ -50,12 +49,13 @@ class CarLevel(GameSection):
             self.iscolliding = False 
 
         for bullet in self.player_bullets:
-            bullet.moveAngle(5, bullet.rotation)
+            bullet.move_angle(5, bullet.rotation)
             if bullet.position.x < 0 or bullet.position.y < 0 or bullet.position.x > self.gameapp.rect.right or bullet.position.y > self.gameapp.rect.bottom:
                 self.player_bullets.remove(bullet)
 
-        if self.auto_follow:
-            self.enemy_car.moveTo(5, self.player_car.position)
+        self.enemy_car.rotation= self.enemy_car.get_angle_towards(self.player_car.position)
+        if self.auto_follow and not self.iscolliding:
+            self.enemy_car.move_to(2, self.player_car.position)
 
     def on_render(self):
         self.bg.render()

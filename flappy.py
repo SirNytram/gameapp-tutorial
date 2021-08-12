@@ -93,8 +93,8 @@ class Pipe():
 
 class FlappyLevel(GameSection):
     def on_start(self):
-        self.gameapp.addTimer('flappy', 100)
-        self.gameapp.addTimer('pipes', 1000)
+        self.gameapp.add_timer('flappy', 100)
+        self.gameapp.add_timer('pipes', 1000)
         self.bg = GameShapeRect(self.gameapp.rect, color=Color('black'), line_width=0)
         self.flappy = Flappy()
         self.pipes:List[Pipe] = []
@@ -114,7 +114,7 @@ class FlappyLevel(GameSection):
             self.gameapp.sections['menu'].active = True
         
     def on_loop(self):
-        self.flappy.move(self.gameapp.pressedKeys)
+        self.flappy.move(self.gameapp.pressed_keys)
            
         numcollision = 0
         for pipe in self.pipes:
